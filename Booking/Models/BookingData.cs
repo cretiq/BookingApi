@@ -1,3 +1,5 @@
+using System;
+
 namespace Booking.Models;
 
 public class BookingData
