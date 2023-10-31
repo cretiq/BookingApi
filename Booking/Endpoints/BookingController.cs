@@ -1,4 +1,3 @@
-using Booking.DataAccess.Dao;
 using Booking.Models;
 using Booking.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -8,42 +7,29 @@ namespace Booking.Endpoints;
 
 [Route("api/[controller]")]
 [ApiController]
-public class BookingController : ControllerBase
+public class BookingController(IBookingService service) : ControllerBase
 {
-    private readonly IBookingService _service;
-
-    public BookingController(IBookingService service)
-    {
-        _service = service;
-    }
-
     [HttpGet("all", Name = "Get All Bookings")]
     [Authorize]
-    public async Task<List<BookingData>> GetAllBookings()
-    {
-        return await _service.GetAllBookings();
-    }
-    
+    public async Task<List<BookingData>> GetAllBookings() => await service.GetAllBookings();
+
     [HttpGet(Name = "Get My Bookings")]
     [Authorize]
-    public async Task<List<BookingData>> GetMyBookings()
-    {
-        return await _service.GetUserBookings();
-    }
+    public async Task<List<BookingData>> GetMyBookings() => await service.GetUserBookings();
 
     [HttpPost(Name = "Create Booking")]
     [Authorize]
-    public async Task<IActionResult> Create([FromBody] BookingData bookingData)
+    public async Task<IActionResult> Create([FromBody] DateTime dateTime)
     {
-        var result = await _service.Book(bookingData);
+        var result = await service.Book(dateTime);
         return result == null ? BadRequest() : CreatedAtAction(nameof(GetAllBookings), result);
     }
-    
+
     [HttpDelete(Name = "Delete Booking")]
     [Authorize]
     public async Task<IActionResult> Delete(Guid bookingId)
     {
-        var result = await _service.Delete(bookingId);
+        var result = await service.Delete(bookingId);
         return result ? Ok() : BadRequest();
     }
 }

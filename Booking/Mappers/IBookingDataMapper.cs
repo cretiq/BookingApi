@@ -5,6 +5,6 @@ namespace Booking.Mappers;
 
 public interface IBookingDataMapper
 {
-    BookingDataDao ToDao(BookingData bookingData, Guid userId);
+    BookingDataDao ToDao(DateTime washTime, Guid userId);
     BookingData FromDao(BookingDataDao bookingDataDao);
 }

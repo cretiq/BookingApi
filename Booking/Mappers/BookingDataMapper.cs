@@ -5,21 +5,17 @@ namespace Booking.Mappers;
 
 public class BookingDataMapper : IBookingDataMapper
 {
-    public BookingDataDao ToDao(BookingData bookingData, Guid userId)
-    {
-        return new BookingDataDao
+    public BookingDataDao ToDao(DateTime washTime, Guid userId) =>
+        new()
         {
-            BookingDateTime = bookingData.Time,
+            BookingDateTime = washTime,
             UserId = userId,
             RequestTimestamp = DateTime.Now
         };
-    }
-    
-    public BookingData FromDao(BookingDataDao bookingDataDao)
-    {
-        return new BookingData
+
+    public BookingData FromDao(BookingDataDao bookingDataDao) =>
+        new()
         {
             Time = bookingDataDao.BookingDateTime
         };
-    }
 }
