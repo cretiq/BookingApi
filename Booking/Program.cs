@@ -1,3 +1,5 @@
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
 using Booking;
 using Booking.Models;
 using Microsoft.AspNetCore.Identity;
@@ -11,10 +13,23 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddAuthentication().AddBearerToken(IdentityConstants.BearerScheme);
 builder.Services.AddAuthorizationBuilder();
 
+
+var keyVaultName = Environment.GetEnvironmentVariable("KEY_VAULT_NAME");
+var kvUri = "https://" + keyVaultName + ".vault.azure.net";
+var client = new SecretClient(new Uri(kvUri), new DefaultAzureCredential());
+
+var secret = await client.GetSecretAsync("AzureSqlConnectionPassword");
+
+Console.WriteLine("THIS IS SECRET!!!");
+Console.WriteLine(secret);
+
+
 //Configuration
 var connectionString = builder.Services.BuildServiceProvider().GetRequiredService<IConfiguration>()
     .GetValue<string>("ConnectionStrings:Default");
 builder.Services.AddDbContext<AppDbContext>(x => x.UseSqlServer(connectionString));
+
+
 builder.Services.AddIdentityCore<MyUser>().AddEntityFrameworkStores<AppDbContext>().AddApiEndpoints();
 builder.Services.AddControllers();
 
