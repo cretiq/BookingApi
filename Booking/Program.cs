@@ -18,6 +18,8 @@ builder.Services.AddDbContext<AppDbContext>(x => x.UseSqlServer(connectionString
 builder.Services.AddIdentityCore<MyUser>().AddEntityFrameworkStores<AppDbContext>().AddApiEndpoints();
 builder.Services.AddControllers();
 
+builder.Services.BuildServiceProvider().GetService<AppDbContext>().Database.Migrate();
+
 var app = builder.Build();
 
 app.MapIdentityApi<MyUser>();
