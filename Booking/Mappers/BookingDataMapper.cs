@@ -1,4 +1,3 @@
-using System;
 using Booking.DataAccess.Dao;
 using Booking.Models;
 
@@ -17,6 +16,8 @@ public class BookingDataMapper : IBookingDataMapper
     public BookingData FromDao(BookingDataDao bookingDataDao) =>
         new()
         {
-            Time = bookingDataDao.BookingDateTime
+            Time = bookingDataDao.BookingDateTime,
+            UserId = bookingDataDao.UserId,
+            BookingId = bookingDataDao.BookingId
         };
 }

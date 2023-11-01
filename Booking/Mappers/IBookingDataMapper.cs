@@ -1,4 +1,3 @@
-using System;
 using Booking.DataAccess.Dao;
 using Booking.Models;
 

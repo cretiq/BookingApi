@@ -1,12 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading.Tasks;
 using Booking.DataAccess;
+using Booking.Helper;
 using Booking.Mappers;
 using Booking.Models;
-using Microsoft.AspNetCore.Http;
 
 namespace Booking.Services;
 
@@ -23,14 +19,14 @@ public class BookingService(
         return dao == null ? null : bookingDataMapper.FromDao(dao);
     }
 
-    public async Task<List<BookingData>> GetUserBookings()
+    public async Task<List<BookingData>> GetMyBookings()
     {
         var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier);
         var daos = await bookingRepository.GetUsersBookings(Guid.Parse(userId!));
         return daos.Select(bookingDataMapper.FromDao).ToList();
     }
 
-    public async Task<BookingData?> Book(DateTime washTime)
+    public async Task<BookingData?> Create(DateTime washTime)
     {
         var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier);
         var dao = bookingDataMapper.ToDao(washTime, Guid.Parse(userId!));
@@ -38,18 +34,16 @@ public class BookingService(
         return result == null ? null : bookingDataMapper.FromDao(result);
     }
 
-    public async Task<bool> Delete(Guid id)
+    public async Task<Operation> Delete(Guid id)
     {
         var booking = await GetBooking(id);
-        if (booking == null) return false;
+        if (booking == null) return Operation.NotFound();
 
-        if (await IsBookingMadeByUser(id,
-                Guid.Parse(httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)!)))
-            return false;
+        if (await IsBookingMadeByUser(id, Guid.Parse(httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)!)))
+            return Operation.Forbidden("The booking is not made by you");
 
         await bookingRepository.Delete(id);
-
-        return true;
+        return Operation.Success();
     }
 
     public async Task<List<BookingData>> GetAllBookings()
@@ -70,10 +64,8 @@ public class BookingService(
 public interface IBookingService
 {
     Task<BookingData?> GetBooking(Guid id);
-    Task<List<BookingData>> GetUserBookings();
+    Task<List<BookingData>> GetMyBookings();
     Task<List<BookingData>> GetAllBookings();
-
-    Task<BookingData?> Book(DateTime washTime);
-
-    Task<bool> Delete(Guid id);
+    Task<BookingData?> Create(DateTime washTime);
+    Task<Operation> Delete(Guid id);
 }

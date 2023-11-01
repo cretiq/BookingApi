@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Booking.DataAccess.Dao;
 using Booking.Models;
 
@@ -21,7 +17,9 @@ public class BookingRepository(AppDbContext appDbContext) : IBookingRepository
     public async Task<bool> Delete(Guid bookingId)
     {
         appDbContext.Bookings.Remove(new BookingDataDao
-            {BookingId = bookingId});
+        {
+            BookingId = bookingId
+        });
         var result = await appDbContext.SaveChangesAsync();
         return result == 1;
     }
@@ -30,8 +28,8 @@ public class BookingRepository(AppDbContext appDbContext) : IBookingRepository
 
     public async Task<IReadOnlyCollection<BookingDataDao>> GetUsersBookings(Guid userId)
     {
-        var usersBookings = appDbContext.Bookings.ToList();
-        return usersBookings.Where(x => x.UserId == userId).ToList();
+        var usersBookings = appDbContext.Bookings.Where(x => x.UserId == userId).ToList();
+        return usersBookings;
     }
 }
 
