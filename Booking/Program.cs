@@ -24,12 +24,9 @@ var app = builder.Build();
 
 app.MapIdentityApi<MyUser>();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// Configure the HTTP request pipeline
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.MapControllers();
 
