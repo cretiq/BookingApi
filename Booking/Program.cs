@@ -18,6 +18,9 @@ builder.Services.AddDbContext<AppDbContext>(x => x.UseSqlServer(connectionString
 builder.Services.AddIdentityCore<MyUser>().AddEntityFrameworkStores<AppDbContext>().AddApiEndpoints();
 builder.Services.AddControllers();
 
+Console.WriteLine("THIS IS CONNECTION STRING!!!");
+Console.WriteLine(connectionString);
+
 // builder.Services.BuildServiceProvider().GetService<AppDbContext>().Database.Migrate();
 
 var app = builder.Build();
