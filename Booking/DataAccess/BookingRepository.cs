@@ -1,11 +1,14 @@
 using Booking.DataAccess.Dao;
+using Booking.Helper;
 using Booking.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Booking.DataAccess;
 
 public class BookingRepository(AppDbContext appDbContext) : IBookingRepository
 {
-    public async Task<IReadOnlyCollection<BookingDataDao>> GetAllBookings() => appDbContext.Bookings.ToList().AsReadOnly();
+    public async Task<IReadOnlyCollection<BookingDataDao>> GetAllBookings() => 
+        appDbContext.Bookings.ToList().AsReadOnly();
 
     public async Task<BookingDataDao?> Create(BookingDataDao dao)
     {
@@ -13,24 +16,38 @@ public class BookingRepository(AppDbContext appDbContext) : IBookingRepository
         var result = await appDbContext.SaveChangesAsync();
         return result == 1 ? dao : null;
     }
-
-    public async Task<bool> Delete(Guid bookingId)
+    
+    public async Task<Operation> Delete(Guid bookingId)
     {
-        appDbContext.Bookings.Remove(new BookingDataDao
-        {
-            BookingId = bookingId
-        });
+        var booking = await appDbContext.Bookings.FindAsync(bookingId);
+
+        if (booking == null) return Operation.NotFound();
+
+        appDbContext.Bookings.Remove(booking);
         var result = await appDbContext.SaveChangesAsync();
-        return result == 1;
+        return result == 1 ? Operation.Success() : Operation.Failed(); 
     }
 
-    public async Task<BookingDataDao?> GetBooking(Guid id) => await appDbContext.Bookings.FindAsync(id);
+    public async Task<bool> IsConflicting(DateTime requestedTime, TimeSpan slotDuration)
+    {
+        var startTime = requestedTime - slotDuration;
+        var endTime = requestedTime + slotDuration;
+
+        startTime = startTime.AddMinutes(1);
+        endTime = endTime.AddMinutes(-1);
+
+        return await appDbContext.Bookings.Where(b => b.BookingDateTime <= endTime && b.BookingDateTime >= startTime).AnyAsync(); 
+    }
+
+    public async Task<BookingDataDao?> GetBooking(Guid id) => 
+        await appDbContext.Bookings.FindAsync(id);
 
     public async Task<IReadOnlyCollection<BookingDataDao>> GetUsersBookings(Guid userId)
     {
         var usersBookings = appDbContext.Bookings.Where(x => x.UserId == userId).ToList();
         return usersBookings;
     }
+
 }
 
 public interface IBookingRepository
@@ -39,5 +56,6 @@ public interface IBookingRepository
     Task<IReadOnlyCollection<BookingDataDao>> GetUsersBookings(Guid userId);
     Task<IReadOnlyCollection<BookingDataDao>> GetAllBookings();
     Task<BookingDataDao?> Create(BookingDataDao dao);
-    Task<bool> Delete(Guid bookingId);
+    Task<Operation> Delete(Guid bookingId);
+    Task<bool> IsConflicting(DateTime requestedTime, TimeSpan slotDuration);
 }

@@ -23,7 +23,14 @@ public class BookingController(IBookingService service) : ControllerBase
     public async Task<IActionResult> Create([FromBody] DateTime dateTime)
     {
         var result = await service.Create(dateTime);
-        return result == null ? BadRequest() : CreatedAtAction(nameof(GetAllBookings), result);
+        
+        return result.Status switch
+        {
+            OperationStatus.Success => CreatedAtAction(nameof(GetAllBookings), result.Result),
+            OperationStatus.Forbidden => Conflict(result.Message),
+            OperationStatus.Failed => Problem(result.Message),
+            _ => throw new ArgumentOutOfRangeException()
+        };
     }
 
     [HttpDelete(Name = "Delete Booking")]
@@ -36,7 +43,8 @@ public class BookingController(IBookingService service) : ControllerBase
         {
             OperationStatus.Success => Ok(),
             OperationStatus.NotFound => NotFound(result.Message),
-            OperationStatus.Forbidden => Forbid(result.Message),
+            OperationStatus.Forbidden => BadRequest(result.Message),
+            OperationStatus.Failed => Problem(result.Message),
             _ => throw new ArgumentOutOfRangeException()
         };
     }

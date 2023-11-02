@@ -1,14 +1,22 @@
 namespace Booking.Helper;
 
-public class OperationResult<T>(string message, OperationStatus status) : Operation(message, status)
+public class OperationResult<T>(string message, T? result = default, OperationStatus status = OperationStatus.Success)
+    : Operation(message, status)
 {
-    public string Message { get; } = message;
+    public T? Result
+    {
+        get
+        {
+            if (Status == OperationStatus.Success)
+                return result;
 
-    public OperationStatus Status { get; } = status;
+            throw new InvalidOperationException("Cannot access");
+        }
+    }
 
-    public static OperationResult<T> NotFound(string message = "Not found") => new(message, OperationStatus.NotFound);
-    public static OperationResult<T> Success(string message = "Success") => new(message, OperationStatus.Success);
-    public static OperationResult<T> Forbidden(string message = "Forbidden") => new(message, OperationStatus.Forbidden);
+    public static OperationResult<T> Success(T result) => new("Success", result);
+    
+    public static implicit operator OperationResult<T>(T value) => Failed<T>();
 }
 
 public class Operation(string message, OperationStatus status)
@@ -20,11 +28,18 @@ public class Operation(string message, OperationStatus status)
     public static Operation NotFound(string message = "Not found") => new(message, OperationStatus.NotFound);
     public static Operation Success(string message = "Success") => new(message, OperationStatus.Success);
     public static Operation Forbidden(string message = "Forbidden") => new(message, OperationStatus.Forbidden);
+    public static Operation Failed(string message = "Forbidden") => new (message, OperationStatus.Failed);
+    
+    public static OperationResult<T> Failed<T>(string message = "Failed") => new(message, default, OperationStatus.Failed);
+    public static OperationResult<T> Forbidden<T>(string message = "Forbidden") => new(message, default, OperationStatus.Forbidden);
+    
+    public static implicit operator bool(Operation result) => result?.Status == OperationStatus.Success;
 }
 
 public enum OperationStatus
 {
     NotFound,
     Success,
-    Forbidden
+    Forbidden,
+    Failed
 }

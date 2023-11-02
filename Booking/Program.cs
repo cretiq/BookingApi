@@ -1,7 +1,10 @@
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using Booking;
+using Booking.DataAccess;
+using Booking.Helper;
 using Booking.Models;
+using Booking.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,6 +17,11 @@ builder.Services.AddAuthentication().AddBearerToken(IdentityConstants.BearerSche
 builder.Services.AddAuthorizationBuilder();
 
 string? connectionString;
+
+#region Add BookingSettings
+builder.Configuration.AddJsonFile("bookingSettings.json", optional: true);
+builder.Services.Configure<BookingSettings>(builder.Configuration.GetSection("BookingSettings"));
+#endregion
 
 #region Get Connection String
 if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AZURE_WEB_ENVIRONMENT")))
