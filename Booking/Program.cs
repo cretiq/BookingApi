@@ -13,33 +13,36 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddAuthentication().AddBearerToken(IdentityConstants.BearerScheme);
 builder.Services.AddAuthorizationBuilder();
 
+string? connectionString;
 
-var keyVaultName = Environment.GetEnvironmentVariable("KEY_VAULT_NAME");
-var kvUri = "https://" + keyVaultName + ".vault.azure.net";
-var client = new SecretClient(new Uri(kvUri), new DefaultAzureCredential());
+#region Get Connection String
+if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AZURE_WEB_ENVIRONMENT")))
+{
+    //Get KeyVaultSecrets
+    var keyVaultName = Environment.GetEnvironmentVariable("KEY_VAULT_NAME");
+    var kvUri = "https://" + keyVaultName + ".vault.azure.net";
+    var client = new SecretClient(new Uri(kvUri), new DefaultAzureCredential());
+    var secret = await client.GetSecretAsync("AzureSqlConnectionPassword"); 
+    connectionString = Environment.GetEnvironmentVariable("SQL_CONNECTION_STRING");
+    connectionString = connectionString?.Replace("PasswordPlaceholder", secret.Value.Value);
+}
+else
+{
+    connectionString = builder.Configuration.GetValue<string>("ConnectionStrings:Default");
+}
+#endregion
 
-var secret = await client.GetSecretAsync("AzureSqlConnectionPassword");
-
-Console.WriteLine("THIS IS SECRET!!!");
-Console.WriteLine(secret);
-
-
-//Configuration
-var connectionString = builder.Services.BuildServiceProvider().GetRequiredService<IConfiguration>()
-    .GetValue<string>("ConnectionStrings:Default");
 builder.Services.AddDbContext<AppDbContext>(x => x.UseSqlServer(connectionString));
-
 
 builder.Services.AddIdentityCore<MyUser>().AddEntityFrameworkStores<AppDbContext>().AddApiEndpoints();
 builder.Services.AddControllers();
 
-builder.Services.BuildServiceProvider().GetService<AppDbContext>().Database.Migrate();
+builder.Services.BuildServiceProvider().GetService<AppDbContext>()?.Database.Migrate();
 
 var app = builder.Build();
 
 app.MapIdentityApi<MyUser>();
 
-// Configure the HTTP request pipeline
 app.UseSwagger();
 app.UseSwaggerUI();
 
