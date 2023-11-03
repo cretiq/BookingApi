@@ -28,11 +28,12 @@ public class BookingRepository(AppDbContext appDbContext) : IBookingRepository
         return result == 1 ? Operation.Success() : Operation.Failed(); 
     }
 
-    public async Task<bool> IsConflicting(DateTime requestedTime, TimeSpan slotDuration)
+    public async Task<bool> IsConflicting(DateTime bookingTime, TimeSpan slotDuration)
     {
-        var startTime = requestedTime - slotDuration;
-        var endTime = requestedTime + slotDuration;
+        var startTime = bookingTime - slotDuration;
+        var endTime = bookingTime + slotDuration;
 
+        //Add and subtract one minute to not collide on whole hour
         startTime = startTime.AddMinutes(1);
         endTime = endTime.AddMinutes(-1);
 
@@ -57,5 +58,5 @@ public interface IBookingRepository
     Task<IReadOnlyCollection<BookingDataDao>> GetAllBookings();
     Task<BookingDataDao?> Create(BookingDataDao dao);
     Task<Operation> Delete(Guid bookingId);
-    Task<bool> IsConflicting(DateTime requestedTime, TimeSpan slotDuration);
+    Task<bool> IsConflicting(DateTime bookingTime, TimeSpan slotDuration);
 }

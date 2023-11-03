@@ -26,10 +26,13 @@ public class BookingService(
 
     public async Task<OperationResult<BookingData>> Create(DateTime bookingTime)
     {
-        var validation = await ValidateBookingTimeslot(bookingTime);
-
-        if (validation.Status != OperationStatus.Success)
-            return Operation.Forbidden<BookingData>(validation.Message);
+        var numberOfBookingsValidation = await ValidateNumberOfBookings();
+        if (numberOfBookingsValidation.Status != OperationStatus.Success)
+            return Operation.Forbidden<BookingData>(numberOfBookingsValidation.Message);
+        
+        var timeslotValidation = await ValidateBookingTimeslot(bookingTime);
+        if (timeslotValidation.Status != OperationStatus.Success)
+            return Operation.Forbidden<BookingData>(timeslotValidation.Message);
 
         var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier);
         var dao = bookingDataMapper.ToDao(bookingTime, Guid.Parse(userId!));
@@ -70,10 +73,27 @@ public class BookingService(
         return dao.UserId == currentUser;
     }
 
-    private async Task<Operation> ValidateBookingTimeslot(DateTime bookingData) =>
-        await bookingRepository.IsConflicting(bookingData, _bookingSettings.SlotDuration)
+    private async Task<Operation> ValidateBookingTimeslot(DateTime bookingTime) =>
+        await bookingRepository.IsConflicting(bookingTime, _bookingSettings.SlotDuration)
             ? Operation.Forbidden("Booking is conflicting with other booking")
             : Operation.Success();
+
+    private async Task<Operation> ValidateNumberOfBookings()
+    {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var usersBookings = await bookingRepository.GetUsersBookings(Guid.Parse(userId!));
+
+        //Verifies if users total amount of booking are topped out
+        if (usersBookings.Count >= _bookingSettings.MaxAmountPerUser)
+            return Operation.Forbidden($"You have maximum number of bookings: {_bookingSettings.MaxAmountPerUser}");
+
+        //Verifies if users total amount of booking are topped out for a rolling week (from today)
+        var timeOneWeekAhead = DateTime.Now + TimeSpan.FromDays(7);
+        if(usersBookings.Count(x => x.BookingDateTime > DateTime.Now && x.BookingDateTime < timeOneWeekAhead) >= _bookingSettings.MaxAmountPerUserPerWeek)
+            return Operation.Forbidden($"You have the maximum number of booking in a week: {_bookingSettings.MaxAmountPerUserPerWeek}");
+        
+        return Operation.Success();
+    }
 }
 
 public interface IBookingService
