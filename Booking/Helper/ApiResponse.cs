@@ -25,11 +25,12 @@ public class Operation(string message, OperationStatus status)
 
     public OperationStatus Status { get; } = status;
 
+    public static Operation Created(string message = "Created") => new(message, OperationStatus.Created);
     public static Operation NotFound(string message = "Not found") => new(message, OperationStatus.NotFound);
     public static Operation Success(string message = "Success") => new(message, OperationStatus.Success);
     public static Operation Forbidden(string message = "Forbidden") => new(message, OperationStatus.Forbidden);
     public static Operation Failed(string message = "Forbidden") => new (message, OperationStatus.Failed);
-    
+
     public static OperationResult<T> Failed<T>(string message = "Failed") => new(message, default, OperationStatus.Failed);
     public static OperationResult<T> Forbidden<T>(string message = "Forbidden") => new(message, default, OperationStatus.Forbidden);
     
@@ -38,6 +39,7 @@ public class Operation(string message, OperationStatus status)
 
 public enum OperationStatus
 {
+    Created,
     NotFound,
     Success,
     Forbidden,

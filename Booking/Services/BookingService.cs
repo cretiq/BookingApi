@@ -31,7 +31,7 @@ public class BookingService(
         //FluentValidation
         var validate = _validator.Validate(bookingTime);
         if (!validate.IsValid)
-            return Operation.Failed<BookingData>(validate.Errors.First().ErrorMessage);
+            return Operation.Forbidden<BookingData>(validate.Errors.First().ErrorMessage);
 
         //Verifies number of bookings made by user
         var numberOfBookingsValidation = await ValidateNumberOfBookings();
