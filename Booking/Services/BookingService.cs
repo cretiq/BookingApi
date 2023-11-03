@@ -3,6 +3,7 @@ using Booking.DataAccess;
 using Booking.Helper;
 using Booking.Mappers;
 using Booking.Models;
+using FluentValidation;
 using Microsoft.Extensions.Options;
 
 namespace Booking.Services;
@@ -11,6 +12,7 @@ public class BookingService(
         IBookingRepository bookingRepository,
         IBookingDataMapper bookingDataMapper,
         IHttpContextAccessor httpContextAccessor,
+        IValidator<DateTime> _validator,
         IOptions<BookingSettings> bookingSettings
     )
     : IBookingService
@@ -20,16 +22,23 @@ public class BookingService(
     public async Task<List<BookingData>> GetMyBookings()
     {
         var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var daos = await bookingRepository.GetUsersBookings(Guid.Parse(userId!));
-        return daos.Select(bookingDataMapper.FromDao).ToList();
+        var usersBookings = await bookingRepository.GetUsersBookings(Guid.Parse(userId!));
+        return usersBookings.Select(bookingDataMapper.FromDao).ToList();
     }
 
     public async Task<OperationResult<BookingData>> Create(DateTime bookingTime)
     {
+        //FluentValidation
+        var validate = _validator.Validate(bookingTime);
+        if (!validate.IsValid)
+            return Operation.Failed<BookingData>(validate.Errors.First().ErrorMessage);
+
+        //Verifies number of bookings made by user
         var numberOfBookingsValidation = await ValidateNumberOfBookings();
         if (numberOfBookingsValidation.Status != OperationStatus.Success)
             return Operation.Forbidden<BookingData>(numberOfBookingsValidation.Message);
-        
+
+        //Verifies if booking is conflicting with other bookings
         var timeslotValidation = await ValidateBookingTimeslot(bookingTime);
         if (timeslotValidation.Status != OperationStatus.Success)
             return Operation.Forbidden<BookingData>(timeslotValidation.Message);
@@ -54,23 +63,24 @@ public class BookingService(
 
     public async Task<List<BookingData>> GetAllBookings()
     {
-        var daos = await bookingRepository.GetAllBookings();
-        return daos.Select(bookingDataMapper.FromDao).ToList();
+        var allBookingsDaos = await bookingRepository.GetAllBookings();
+        return allBookingsDaos.Select(bookingDataMapper.FromDao).ToList();
     }
 
     public async Task<BookingData?> GetBooking(Guid id)
     {
-        var dao = await bookingRepository.GetBooking(id);
-        return dao == null ? null : bookingDataMapper.FromDao(dao);
+        var bookingDao = await bookingRepository.GetBooking(id);
+        return bookingDao == null ? null : bookingDataMapper.FromDao(bookingDao);
     }
 
     private async Task<bool> IsBookingMadeByUser(Guid bookingId)
     {
         var currentUser = Guid.Parse(httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var dao = await bookingRepository.GetBooking(bookingId);
-        if (dao == null) return false;
+        var bookingDao = await bookingRepository.GetBooking(bookingId);
+        if (bookingDao == null)
+            return false;
 
-        return dao.UserId == currentUser;
+        return bookingDao.UserId == currentUser;
     }
 
     private async Task<Operation> ValidateBookingTimeslot(DateTime bookingTime) =>
