@@ -5,6 +5,7 @@ using Booking.DataAccess;
 using Booking.Helper;
 using Booking.Models;
 using Booking.Services;
+using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,7 +25,9 @@ builder.Services.Configure<BookingSettings>(builder.Configuration.GetSection("Bo
 #endregion
 
 #region Get Connection String
-if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AZURE_WEB_ENVIRONMENT")))
+
+var isOnAzure = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AZURE_WEB_ENVIRONMENT"));
+if (isOnAzure)
 {
     //Get KeyVaultSecrets
     var keyVaultName = Environment.GetEnvironmentVariable("KEY_VAULT_NAME");
@@ -45,7 +48,12 @@ builder.Services.AddDbContext<AppDbContext>(x => x.UseSqlServer(connectionString
 builder.Services.AddIdentityCore<MyUser>().AddEntityFrameworkStores<AppDbContext>().AddApiEndpoints();
 builder.Services.AddControllers();
 
-builder.Services.BuildServiceProvider().GetService<AppDbContext>()?.Database.Migrate();
+if (isOnAzure)
+{
+    builder.Services.BuildServiceProvider().GetService<AppDbContext>()?.Database.Migrate();
+}
+
+builder.Services.AddScoped<IValidator<DateTime>, DateTimeValidator>();
 
 var app = builder.Build();
 
