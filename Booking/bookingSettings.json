@@ -2,6 +2,8 @@
   "BookingSettings": {
     "SlotDuration": "03:00:00",
     "MaxAmountPerUser": 3,
-    "MaxAmountPerUserPerWeek": 3
+    "MaxAmountPerUserPerWeek": 3,
+    "OpeningTime": "7",
+    "ClosingTime": "22"
   }
 }
