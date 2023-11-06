@@ -14,16 +14,24 @@ public class BookingRepository(AppDbContext appDbContext) : IBookingRepository
     {
         appDbContext.Bookings.Add(dao);
         var result = await appDbContext.SaveChangesAsync();
-        return result == 1 ? dao : null;
+        return result == 1 ?
+            dao :
+            null;
     }
 
     public async Task<Operation> Delete(Guid bookingId)
     {
         var booking = await appDbContext.Bookings.FindAsync(bookingId);
-        if (booking == null) return Error.NotFound();
+        if (booking == null)
+            return Error.NotFound();
+
         appDbContext.Bookings.Remove(booking);
+
         var result = await appDbContext.SaveChangesAsync();
-        return result == 1 ? Operation.Success() : Error.Unknown();
+
+        return result == 1 ?
+            Operation.Success() :
+            Error.Unknown();
     }
 
     public async Task<bool> IsConflicting(DateTime bookingTime, TimeSpan slotDuration)

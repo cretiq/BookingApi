@@ -10,5 +10,5 @@ public class AppDbContext : IdentityDbContext<MyUser>
 
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-    public DbSet<BookingDataDao> Bookings { get; set; }
+    public virtual DbSet<BookingDataDao> Bookings { get; set; }
 }
