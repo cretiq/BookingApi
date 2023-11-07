@@ -60,12 +60,6 @@ public class BookingService(
         return allBookingsDaos.Select(bookingDataMapper.FromDao).ToList();
     }
 
-    public async Task<BookingData?> GetBooking(Guid id)
-    {
-        var bookingDao = await bookingRepository.GetBooking(id);
-        return bookingDao == null ? null : bookingDataMapper.FromDao(bookingDao);
-    }
-
     private async Task<bool> IsBookingMadeByUser(Guid bookingId)
     {
         var currentUser = Guid.Parse(httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -94,8 +88,8 @@ public class BookingService(
         //Verifies if users total amount of booking are topped out for a rolling week (from today)
         var timeOneWeekAhead = DateTime.Now + TimeSpan.FromDays(7);
 
-        if (usersBookings.Count(x => x.BookingDateTime > DateTime.Now && x.BookingDateTime < timeOneWeekAhead) >= _bookingSettings.MaxAmountPerUserPerWeek)
-            return Error.Forbidden($"You have the maximum number of booking in a week: {_bookingSettings.MaxAmountPerUserPerWeek}");
+        if (usersBookings.Count(x => x.BookingDateTime > DateTime.Now + TimeSpan.FromMinutes(-1) && x.BookingDateTime < timeOneWeekAhead) >= _bookingSettings.MaxAmountPerUserPerWeek)
+            return Error.Forbidden($"You have the maximum number of bookings in a week: {_bookingSettings.MaxAmountPerUserPerWeek}");
 
         return Operation.Success();
     }

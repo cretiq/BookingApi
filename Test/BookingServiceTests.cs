@@ -72,34 +72,31 @@ public class BookingServiceTests
         return bookingRepositoryMock;
     }
 
-    private static BookingService SetupBookingService(int maxBookingsPerUser, int maxBookingsPerUserPerWeek, int numberOfBookings)
+    private static BookingService SetupBookingService(int maxBookingsPerUser, int maxBookingsPerUserPerWeek, IReadOnlyCollection<BookingDataDao> bookingDataDaos)
     {
         var bookingRepositoryMock = SetupBookingRepositoryMock();
-        bookingRepositoryMock.Setup(c => c.GetUsersBookings(It.IsAny<Guid>())).ReturnsAsync(CreateBookingDataDaos(numberOfBookings));
+        bookingRepositoryMock.Setup(c => c.GetUsersBookings(It.IsAny<Guid>())).ReturnsAsync(bookingDataDaos);
         var settingsMock = SetupSettingsMock(maxBookingsPerUser, maxBookingsPerUserPerWeek);
         var httpContextMock = SetupHttpContextMockWithFakeUser();
         var bookingService = SetupBookingService(bookingRepositoryMock, null, httpContextMock, settingsMock);
         return bookingService;
     }
 
-    private static List<BookingDataDao> CreateBookingDataDaos(int numberOfBookings)
-    {
-        var listOfBookings = new List<BookingDataDao>();
+    private static BookingDataDao BookingDataDao(DateTime bookingDateTime) => new() { BookingDateTime = bookingDateTime };
 
-        for (var i = 0; i < numberOfBookings; i++)
-            listOfBookings.Add(new BookingDataDao
-            {
-                BookingDateTime = DateTime.Now + TimeSpan.FromHours(i * 3)
-            });
-
-        return listOfBookings;
-    }
+    private static List<BookingDataDao> SetupUpNBookingDataDaos(int numberOfBookings) => Enumerable.Range(0, numberOfBookings).Select(x => new BookingDataDao()).ToList();
 
     [Test]
     public async Task ValidateNumberOfBookings_UserBelowMaxAmount_ReturnsSuccess()
     {
         // Arrange
-        var bookingService = SetupBookingService(3, 5, 1);
+        var bookings = new List<BookingDataDao>
+        {
+            BookingDataDao(DateTime.Now),
+            BookingDataDao(DateTime.Now + TimeSpan.FromDays(3)),
+        };
+
+        var bookingService = SetupBookingService(3, 5, bookings);
 
         // Act
         var result = await bookingService.ValidateNumberOfBookings();
@@ -112,7 +109,8 @@ public class BookingServiceTests
     public async Task ValidateNumberOfBookings_UserAtMaxAmount_ReturnsForbidden()
     {
         // Arrange
-        var bookingService = SetupBookingService(3, 3, 3);
+        var bookings = SetupUpNBookingDataDaos(3);
+        var bookingService = SetupBookingService(3, 3, bookings);
 
         // Act
         var result = await bookingService.ValidateNumberOfBookings();
@@ -125,7 +123,8 @@ public class BookingServiceTests
     public async Task ValidateNumberOfBookings_UserBelowMaxAmountPerWeek_ReturnsSuccess()
     {
         // Arrange
-        var bookingService = SetupBookingService(5, 3, 2);
+        var bookings = SetupUpNBookingDataDaos(1);
+        var bookingService = SetupBookingService(5, 3, bookings);
 
         // Act
         var result = await bookingService.ValidateNumberOfBookings();
@@ -138,12 +137,19 @@ public class BookingServiceTests
     public async Task ValidateNumberOfBookings_UserAtMaxAmountPerWeek_ReturnsForbidden()
     {
         // Arrange
-        var bookingService = SetupBookingService(5, 3, 4);
+        var bookings = new List<BookingDataDao>
+        {
+            BookingDataDao(DateTime.Now),
+            BookingDataDao(DateTime.Now + TimeSpan.FromDays(1)),
+            BookingDataDao(DateTime.Now + TimeSpan.FromDays(2)),
+        };
+
+        var bookingService = SetupBookingService(5, 3, bookings);
 
         // Act
         var result = await bookingService.ValidateNumberOfBookings();
 
         // Assert
-        Assert.That(result.Error.Details, Is.EqualTo("You have the maximum number of booking in a week: 3"));
+        Assert.That(result.Error.Details, Is.EqualTo("You have the maximum number of bookings in a week: 3"));
     }
 }
